@@ -70,7 +70,7 @@
         <td>{{ p.rx_type }}</td>
         <td>{{ p.patient_groups }}</td>
         <td class="text-end">{{ money(p.unit_price) }}</td>
-        <td class="text-end">
+        <td class="text-end" v-if="canEdit()">  
         <button class="btn btn-sm btn-outline-primary me-1"
                 @click="openEdit(p)">Edit</button>
         <button class="btn btn-sm btn-outline-danger"
@@ -145,6 +145,14 @@ createApp({
       typeOptions: [],
       groupOptions: []
     });
+    const userRole = ref('guest');
+    fetch('api/session.php')
+      .then(r => r.json())
+      .then(data => {
+        userRole.value = data.role;
+      });
+
+    const canEdit = () => ['admin', 'pharmacist'].includes(userRole.value);
 
     /* ---------- helpers ---------- */
     const qs = computed(() => {
@@ -168,7 +176,7 @@ createApp({
 
     /* ---------- API calls ---------- */
     function load(){
-      const url = 'api/products.php' + (qs.value ? '?' + qs.value : '');
+      const url = 'api/modules/product/products.php' + (qs.value ? '?' + qs.value : '');
       fetch(url)
         .then(r => r.json())
         .then(rows => data.products = rows)
@@ -192,7 +200,7 @@ createApp({
       Object.entries(edit).forEach(([k,v]) => fd.append(k, v));
       if (newPhoto) fd.append('photo', newPhoto);
 
-      const res = await fetch('api/product_save.php', {method:'POST', body:fd});
+      const res = await fetch('api/modules/product/product_save.php', {method:'POST', body:fd});
       const json = await res.json();
       if (json.ok){
         bsModal.hide();
@@ -203,7 +211,7 @@ createApp({
     async function softDelete(p){
       if (!confirm(`Delete ${p.product_name}?`)) return;
       const fd = new FormData(); fd.append('id', p.product_id);
-      const res = await fetch('api/product_delete.php', {method:'POST', body:fd});
+      const res = await fetch('api/modules/product/product_delete.php', {method:'POST', body:fd});
       const json = await res.json();
       if (json.ok) load();
       else alert(json.error || 'Delete failed');
@@ -211,7 +219,7 @@ createApp({
 
 
     /* first fetch – also collect distinct filter options */
-    fetch('api/products.php')
+    fetch('api/modules/product/products.php')
       .then(r => r.json())
       .then(rows => {
         data.products = rows;

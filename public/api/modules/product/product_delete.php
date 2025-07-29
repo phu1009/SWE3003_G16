@@ -1,5 +1,9 @@
 <?php
-require_once __DIR__.'/../../lib/Database.php';
+require_once __DIR__ . '/../../../../lib/Auth.php';
+require_permission('product_delete');
+
+
+require_once __DIR__ . '/../../../../lib/Database.php';
 header('Content-Type: application/json; charset=utf-8');
 
 $id = (int)($_POST['id'] ?? 0);
