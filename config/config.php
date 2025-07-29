@@ -3,9 +3,9 @@ return [
     'db' => [
         'host'    => 'localhost',
         'name'    => 'lc_pms',
-        'user'    => 'tai',      // your user
-        'pass'    => 'pass',     // your pass
+        'user'    => 'root',      // your user
+        'pass'    => '',     // your pass
         'charset' => 'utf8mb4'
     ],
-    'base_url' => '/lc-pms/public'   // adjust if different
+    'base_url' => '/SWE3003_G16/public'   // adjust if different
 ];
