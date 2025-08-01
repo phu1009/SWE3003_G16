@@ -24,7 +24,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $ok = UserModel::createCustomer($email, $pass1, $fullName);
         if ($ok) {
-            // auto-login
             $user = UserModel::findByEmail($email);
             $_SESSION['user'] = [
                 'id'    => $user['user_id'],
@@ -40,16 +39,46 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 ?>
-<!doctype html><html><head><meta charset="utf-8"><title>Sign up</title></head>
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Sign up</title>
+  <link rel="stylesheet" href="<?= $cfg['base_url'] ?>/css/register.css">
+</head>
 <body>
-<h2>Register (Customer)</h2>
-<?php if ($error) echo "<p style='color:red'>$error</p>"; ?>
-<form method="post">
-    <label>Full Name <input name="full_name" required value="<?= htmlspecialchars($_POST['full_name'] ?? '') ?>"></label><br>
-    <label>Email <input type="email" name="email" required value="<?= htmlspecialchars($_POST['email'] ?? '') ?>"></label><br>
-    <label>Password <input type="password" name="password" required></label><br>
-    <label>Confirm Password <input type="password" name="password2" required></label><br>
-    <button type="submit">Create Account</button>
-</form>
-<p><a href="<?= $cfg['base_url'] ?>/login.php">Back to login</a></p>
-</body></html>
+  <div class="register-container">
+    <h2>Register (Customer)</h2>
+
+    <?php if ($error): ?>
+      <p class="error"><?= htmlspecialchars($error) ?></p>
+    <?php endif; ?>
+
+    <form method="post">
+      <div class="form-group">
+        <label for="full_name">Full Name</label>
+        <input id="full_name" name="full_name" required value="<?= htmlspecialchars($_POST['full_name'] ?? '') ?>">
+      </div>
+
+      <div class="form-group">
+        <label for="email">Email</label>
+        <input id="email" type="email" name="email" required value="<?= htmlspecialchars($_POST['email'] ?? '') ?>">
+      </div>
+
+      <div class="form-group">
+        <label for="password">Password</label>
+        <input id="password" type="password" name="password" required>
+      </div>
+
+      <div class="form-group">
+        <label for="password2">Re-enter Password</label>
+        <input id="password2" type="password" name="password2" required>
+      </div>
+
+      <button type="submit">Create Account</button>
+    </form>
+
+    <p><a href="<?= $cfg['base_url'] ?>/login.php">Back to login</a></p>
+  </div>
+</body>
+</html>

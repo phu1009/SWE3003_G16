@@ -1,6 +1,6 @@
 <?php
 require_once __DIR__ . '/../../../../lib/Auth.php';
-require_permission('product_delete');
+require_permission('product.delete');
 
 
 require_once __DIR__ . '/../../../../lib/Database.php';

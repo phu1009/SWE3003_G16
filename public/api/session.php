@@ -2,12 +2,12 @@
 
 session_start();
 // TEMP: inject user for testing
-if (!isset($_SESSION['user'])) {
-  $_SESSION['user'] = [
-    'name' => 'Dev Manager',
-    'roles' => ['admin']
-  ];
-}
+// if (!isset($_SESSION['user'])) {
+//   $_SESSION['user'] = [
+//     'name' => 'Dev Manager',
+//     'roles' => ['admin']
+//   ];
+// }
 header('Content-Type: application/json');
 
 // default guest session
@@ -16,7 +16,7 @@ $user = $_SESSION['user'] ?? [
   'roles' => ['guest']
 ];
 
-$permissionsMap = require __DIR__ . '/../api/auth/roles.php';
+$permissionsMap = require __DIR__ . '/auth/roles.php';
 
 $granted = [];
 foreach ($user['roles'] as $role) {

@@ -27,7 +27,7 @@ Vue.createApp({
   data(){ return { products:[] }; },
   mounted(){
     // ------- adjust path if necessary ----------
-    fetch('api/products.php')          // relative to /public/
+    fetch('api/modules/product/products.php')          // relative to /public/
       .then(r=>r.json())
       .then(rows=> this.products = rows)
       .catch(err=> console.error(err));

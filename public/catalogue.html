@@ -62,7 +62,7 @@
       </tr>
     </thead>
     <tbody>
-    <tr v-for="p in products" :key="p.product_id">
+      <tr v-for="p in products" :key="p.product_id">
         <td><img :src="imgUrl(p)" class="img-thumbnail" style="max-width:60px"></td>
         <td>{{ p.sku }}</td>
         <td>{{ p.product_name }}</td>
@@ -70,64 +70,63 @@
         <td>{{ p.rx_type }}</td>
         <td>{{ p.patient_groups }}</td>
         <td class="text-end">{{ money(p.unit_price) }}</td>
-        <td class="text-end" v-if="canEdit()">  
-        <button class="btn btn-sm btn-outline-primary me-1"
-                @click="openEdit(p)">Edit</button>
-        <button class="btn btn-sm btn-outline-danger"
-                @click="softDelete(p)">Del</button>
+        <td class="text-end" v-if="canEdit.value">
+          <button class="btn btn-sm btn-outline-primary me-1" @click="openEdit(p)">Edit</button>
+          <button class="btn btn-sm btn-outline-danger" @click="softDelete(p)">Del</button>
         </td>
-    </tr>
-    <tr v-if="products.length === 0">
+      </tr>
+      <tr v-if="products.length === 0">
         <td colspan="8" class="text-center text-muted">No products found</td>
-    </tr>
+      </tr>
     </tbody>
   </table>
 </div>
 
 <div class="modal fade" id="editModal" tabindex="-1">
-  <div class="modal-dialog"><div class="modal-content">
-    <div class="modal-header">
-      <h5 class="modal-title">Edit product</h5>
-      <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Edit product</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <form @submit.prevent="save">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Name
+              <input v-model="edit.product_name" class="form-control" required>
+            </label>
+          </div>
+
+          <div class="row g-2">
+            <div class="col">
+              <label class="form-label">Price
+                <input v-model.number="edit.unit_price" type="number" min="0" class="form-control" required>
+              </label>
+            </div>
+            <div class="col">
+              <label class="form-label">Rx type
+                <select v-model="edit.rx_type" class="form-select">
+                  <option>OTC</option><option>RX</option><option>CONTROLLED</option>
+                </select>
+              </label>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Replace photo
+              <input @change="pickFile" type="file" accept="image/*" class="form-control">
+            </label>
+            <img :src="imgPreview" v-if="imgPreview" class="img-fluid mt-2" style="max-width:120px">
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button class="btn btn-primary" type="submit">Save</button>
+        </div>
+      </form>
     </div>
-
-    <form @submit.prevent="save">
-      <div class="modal-body">
-        <div class="mb-3">
-          <label class="form-label">Name
-            <input v-model="edit.product_name" class="form-control" required>
-          </label>
-        </div>
-
-        <div class="row g-2">
-          <div class="col">
-            <label class="form-label">Price
-              <input v-model.number="edit.unit_price" type="number" min="0"
-                     class="form-control" required>
-            </label>
-          </div>
-          <div class="col">
-            <label class="form-label">Rx type
-              <select v-model="edit.rx_type" class="form-select">
-                <option>OTC</option><option>RX</option><option>CONTROLLED</option>
-              </select>
-            </label>
-          </div>
-        </div>
-
-        <div class="mb-3">
-          <label class="form-label">Replace photo
-            <input @change="pickFile" type="file" accept="image/*" class="form-control">
-          </label>
-          <img :src="imgPreview" v-if="imgPreview" class="img-fluid mt-2" style="max-width:120px">
-        </div>
-      </div>
-
-      <div class="modal-footer">
-        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button class="btn btn-primary" type="submit">Save</button>
-      </div>
-    </form>
   </div>
 </div>
 
@@ -138,106 +137,89 @@ const { createApp, reactive, toRefs, watch, computed, ref, onMounted } = Vue;
 
 createApp({
   setup() {
-    /* ---------- reactive state ---------- */
     const filters = reactive({ type:'', rx:'', group:'', sort:'' });
-    const data    = reactive({
-      products: [],
-      typeOptions: [],
-      groupOptions: []
-    });
+    const data = reactive({ products: [], typeOptions: [], groupOptions: [] });
     const userRole = ref('guest');
+
     fetch('api/session.php')
       .then(r => r.json())
-      .then(data => {
-        userRole.value = data.role;
-      });
+      .then(d => { userRole.value = (data.roles && data.roles[0]) || 'guest'; });
 
-    const canEdit = () => ['admin', 'pharmacist'].includes(userRole.value);
+    const canEdit = computed(() => ['admin', 'pharmacist'].includes(userRole.value));
 
-    /* ---------- helpers ---------- */
     const qs = computed(() => {
       const p = new URLSearchParams();
       Object.entries(filters).forEach(([k,v]) => { if (v) p.append(k,v); });
-      return p.toString();          // '' if no filters
+      return p.toString();
     });
 
     const imgUrl = p =>
-        p.image_path
-        ? `/images/products/${p.image_path}`    // adjust if different
-        : 'https://via.placeholder.com/60x60?text=No+Img';
+      p.image_path ? `/images/products/${p.image_path}` : 'https://via.placeholder.com/60x60?text=No+Img';
 
-    const money = n =>
-        (+n).toLocaleString('en-US', { minimumFractionDigits: 2 });
+    const money = n => (+n).toLocaleString('en-US', { minimumFractionDigits: 2 });
 
-    const edit       = reactive({});
+    const edit = reactive({});
     const imgPreview = ref('');
-    let newPhoto     = null;
+    let newPhoto = null;
     let bsModal;
 
-    /* ---------- API calls ---------- */
-    function load(){
+    function load() {
       const url = 'api/modules/product/products.php' + (qs.value ? '?' + qs.value : '');
       fetch(url)
         .then(r => r.json())
-        .then(rows => data.products = rows)
+        .then(rows => {
+          data.products = rows;
+          data.typeOptions = [...new Set(rows.map(r => r.type_name).filter(Boolean))];
+          data.groupOptions = [...new Set(rows.flatMap(r => (r.patient_groups || '').split(',')).filter(Boolean))];
+        })
         .catch(console.error);
     }
 
-        function openEdit(p){
-      Object.assign(edit, p);        // copy fields
+    function openEdit(p) {
+      Object.assign(edit, p);
       imgPreview.value = imgUrl(p);
       newPhoto = null;
       bsModal.show();
     }
 
-    function pickFile(e){
+    function pickFile(e) {
       newPhoto = e.target.files[0] || null;
       imgPreview.value = newPhoto ? URL.createObjectURL(newPhoto) : imgUrl(edit);
     }
 
-    async function save(){
+    async function save() {
       const fd = new FormData();
-      Object.entries(edit).forEach(([k,v]) => fd.append(k, v));
+      Object.entries(edit).forEach(([k,v]) => fd.append(k,v));
       if (newPhoto) fd.append('photo', newPhoto);
 
-      const res = await fetch('api/modules/product/product_save.php', {method:'POST', body:fd});
+      const res = await fetch('api/modules/product/product_save.php', { method:'POST', body:fd });
       const json = await res.json();
-      if (json.ok){
+      if (json.ok) {
         bsModal.hide();
-        load();                      // refresh table
-      } else alert(json.error || 'Save failed');
+        load();
+      } else {
+        alert(json.error || 'Save failed');
+      }
     }
 
-    async function softDelete(p){
+    async function softDelete(p) {
       if (!confirm(`Delete ${p.product_name}?`)) return;
-      const fd = new FormData(); fd.append('id', p.product_id);
-      const res = await fetch('api/modules/product/product_delete.php', {method:'POST', body:fd});
+      const fd = new FormData();
+      fd.append('id', p.product_id);
+      const res = await fetch('api/modules/product/product_delete.php', { method:'POST', body:fd });
       const json = await res.json();
       if (json.ok) load();
       else alert(json.error || 'Delete failed');
     }
 
-
-    /* first fetch – also collect distinct filter options */
-    fetch('api/modules/product/products.php')
-      .then(r => r.json())
-      .then(rows => {
-        data.products = rows;
-        data.typeOptions  = [...new Set(rows.map(r => r.type_name).filter(Boolean))];
-        data.groupOptions = [...new Set(
-          rows.flatMap(r => (r.patient_groups || '').split(',')).filter(Boolean)
-        )];
-      });
-
     watch(filters, load, { deep: true });
 
-    onMounted(()=>{
+    onMounted(() => {
       bsModal = new bootstrap.Modal(document.getElementById('editModal'));
+      load();
     });
 
-    /* ---------- expose to template ---------- */
-    return { ...toRefs(data), filters, imgUrl, money,
-             openEdit, pickFile, save, softDelete, edit, imgPreview };
+    return { ...toRefs(data), filters, imgUrl, money, openEdit, pickFile, save, softDelete, edit, imgPreview, canEdit };
   }
 }).mount('#app');
 </script>
