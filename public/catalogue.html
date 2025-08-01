@@ -47,6 +47,10 @@
     </div>
   </div>
 
+  <button v-if="canAdd()" class="btn btn-primary" @click="openNew">
+    + New product
+  </button>>
+
   <!-- Table -->
   <table class="table table-hover align-middle">
     <thead class="table-light">
@@ -86,11 +90,22 @@
   <div class="modal fade" id="editModal" tabindex="-1">
     <div class="modal-dialog"><div class="modal-content">
       <div class="modal-header">
-        <h5 class="modal-title">Edit product</h5>
+        <h5 class="modal-title">
+          {{ edit.product_id ? 'Edit product' : 'New product' }}
+        </h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
 
       <form @submit.prevent="save">
+        <div class="mb-3" v-if="!edit.product_id">
+          <label class="form-label">SKU
+            <input v-model="edit.sku"
+                  class="form-control"
+                  placeholder="e.g. P-000123"
+                  required>
+          </label>
+        </div>
+
         <div class="modal-body">
           <div class="mb-3">
             <label class="form-label">Name
@@ -124,7 +139,7 @@
 
         <div class="modal-footer">
           <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-          <button @click="save" @submit.prevent="save" class="btn btn-primary">Save</button>
+          <button type="submit" class="btn btn-primary">Save</button> 
 
         </div>
       </form>
@@ -148,37 +163,39 @@ createApp({
       typeOptions: [],
       groupOptions: []
     });
+
+    /* ----- current user role ----- */
     const userRole = ref('guest');
     fetch('api/session.php')
       .then(r => r.json())
-      .then(data => {
-          userRole.value = (data.roles && data.roles[0]) || 'guest';
-      });
+      .then(s => { userRole.value = (s.roles && s.roles[0]) || 'guest'; });
 
-    const canEdit = () => ['admin', 'pharmacist'].includes(userRole.value);
+    const canEdit = () => ['admin','pharmacist'].includes(userRole.value);
+    const canAdd  = canEdit;               // change if creation-rights differ
 
     /* ---------- helpers ---------- */
     const qs = computed(() => {
       const p = new URLSearchParams();
       Object.entries(filters).forEach(([k,v]) => { if (v) p.append(k,v); });
-      return p.toString();          // '' if no filters
+      return p.toString();                 // '' if no filters selected
     });
 
     const imgUrl = p =>
-        p.image_path
-        ? `/images/products/${p.image_path}`    // adjust if different
+      p.image_path
+        ? `/images/products/${p.image_path}`   // adjust to your path
         : 'https://via.placeholder.com/60x60?text=No+Img';
 
     const money = n =>
-        (+n).toLocaleString('en-US', { minimumFractionDigits: 2 });
+      (+n).toLocaleString('en-US', { minimumFractionDigits:2 });
 
+    /* ---------- form / modal state ---------- */
     const edit       = reactive({});
     const imgPreview = ref('');
-    let newPhoto     = null;
-    let bsModal;
+    let   newPhoto   = null;
+    let   bsModal;
 
-    /* ---------- API calls ---------- */
-    function load(){
+    /* ---------- API ---------- */
+    function load() {
       const url = 'api/modules/product/products.php' + (qs.value ? '?' + qs.value : '');
       fetch(url)
         .then(r => r.json())
@@ -186,50 +203,77 @@ createApp({
         .catch(console.error);
     }
 
-        function openEdit(p){
-      Object.assign(edit, p);        // copy fields
-      imgPreview.value = imgUrl(p);
+  /* -------- open modal for a NEW item -------- */
+  function openNew() {
+    Object.keys(edit).forEach(k => delete edit[k]);       // clear reactive obj
+    Object.assign(edit, {              // default fields
+      product_name: '', sku: '', unit_price: 0, rx_type: 'OTC'
+    });
+    imgPreview.value = ''; newPhoto = null;
+    bsModal.show();
+  }
+
+  /* -------- open modal for a NEW item -------- */
+    function openEdit(p){
+    // copy the selected record into the reactive object
+    Object.keys(edit).forEach(k => delete edit[k]);
+    Object.assign(edit, JSON.parse(JSON.stringify(p)));
+    imgPreview.value = imgUrl(p);
+    newPhoto = null;
+    bsModal.show();
+  }
+
+    /* ----- open modal: brand-new product ----- */
+    function openNew(){
+      // wipe previous values (without losing reactivity)
+      Object.keys(edit).forEach(k => delete edit[k]);
+      Object.assign(edit, {
+        product_name : '',
+        sku          : '',
+        unit_price   : 0,
+        rx_type      : 'OTC'
+      });
+      imgPreview.value = '';
       newPhoto = null;
       bsModal.show();
     }
 
+    /* ----- file picker ----- */
     function pickFile(e){
       newPhoto = e.target.files[0] || null;
       imgPreview.value = newPhoto ? URL.createObjectURL(newPhoto) : imgUrl(edit);
     }
 
-    async function save(){
-      
-
+    /* -------- save (add OR update) -------- */
+    async function save() {
       const fd = new FormData();
-      Object.entries(edit).forEach(([k,v]) => fd.append(k, v));
+      Object.entries(edit).forEach(([k, v]) => fd.append(k, v));
       if (newPhoto) fd.append('photo', newPhoto);
 
-      const res = await fetch('api/modules/product/product_save.php', {
-        method: 'POST',
-        body: fd
-      });
+      const isNew = !edit.product_id;          // decide endpoint
+      const api   = isNew
+          ? 'api/modules/product/product_add.php'
+          : 'api/modules/product/product_save.php';
+
+      const res  = await fetch(api, { method: 'POST', body: fd });
       const json = await res.json();
       console.log('Server response:', json);
 
-      if (json.ok){
-        bsModal.hide();
-        load();
-      } else alert(json.error || 'Save failed');
+      if (json.ok) { bsModal.hide(); load(); }
+      else alert(json.error || 'Save failed');
     }
 
-
+    /* ----- soft-delete ----- */
     async function softDelete(p){
       if (!confirm(`Delete ${p.product_name}?`)) return;
       const fd = new FormData(); fd.append('id', p.product_id);
-      const res = await fetch('api/modules/product/product_delete.php', {method:'POST', body:fd});
+      const res  = await fetch('api/modules/product/product_delete.php',{method:'POST',body:fd});
       const json = await res.json();
       if (json.ok) load();
       else alert(json.error || 'Delete failed');
     }
 
-
-    /* first fetch – also collect distinct filter options */
+    /* ---------- initial load & option lists ---------- */
     fetch('api/modules/product/products.php')
       .then(r => r.json())
       .then(rows => {
@@ -240,18 +284,20 @@ createApp({
         )];
       });
 
-    watch(filters, load, { deep: true });
+    watch(filters, load, { deep:true });
 
-    onMounted(()=>{
+    onMounted(()=> {
       bsModal = new bootstrap.Modal(document.getElementById('editModal'));
     });
 
     /* ---------- expose to template ---------- */
     return { ...toRefs(data), filters, imgUrl, money,
-             openEdit, pickFile, save, softDelete, edit, imgPreview, canEdit };
+             openEdit, openNew, pickFile, save, softDelete,
+             edit, imgPreview, canEdit, canAdd };
   }
 }).mount('#app');
 </script>
+
 
 </body>
 </html>
