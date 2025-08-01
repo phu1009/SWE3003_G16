@@ -29,14 +29,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 ?>
-<!doctype html><html><head><meta charset="utf-8"><title>Login</title></head>
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Login</title>
+  <link rel="stylesheet" href="<?= $cfg['base_url'] ?>/css/login.css">
+</head>
 <body>
-<h2>Login</h2>
-<?php if ($error) echo "<p style='color:red'>$error</p>"; ?>
-<form method="post">
-    <label>Email <input name="email" type="email" required></label><br>
-    <label>Password <input name="password" type="password" required></label><br>
-    <button type="submit">Sign in</button>
-</form>
-<p><a href="<?= $cfg['base_url'] ?>/register.php">Create an account</a></p>
-</body></html>
+  <div class="login-container">
+    <h2>Login</h2>
+
+    <?php if ($error): ?>
+      <p class="error"><?= htmlspecialchars($error) ?></p>
+    <?php endif; ?>
+
+    <form method="post">
+      <label>Email</label>
+      <input name="email" type="email" required>
+
+      <label>Password</label>
+      <input name="password" type="password" required>
+
+      <button type="submit">Sign in</button>
+    </form>
+
+    <p><a href="<?= $cfg['base_url'] ?>/register.php">Create an account</a></p>
+  </div>
+</body>
+</html>
