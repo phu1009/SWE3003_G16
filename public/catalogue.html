@@ -82,54 +82,57 @@
     </tr>
     </tbody>
   </table>
-</div>
 
-<div class="modal fade" id="editModal" tabindex="-1">
-  <div class="modal-dialog"><div class="modal-content">
-    <div class="modal-header">
-      <h5 class="modal-title">Edit product</h5>
-      <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+  <div class="modal fade" id="editModal" tabindex="-1">
+    <div class="modal-dialog"><div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Edit product</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <form @submit.prevent="save">
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Name
+              <input v-model="edit.product_name" class="form-control" required>
+            </label>
+          </div>
+
+          <div class="row g-2">
+            <div class="col">
+              <label class="form-label">Price
+                <input v-model.number="edit.unit_price" type="number" min="0"
+                      class="form-control" required>
+              </label>
+            </div>
+            <div class="col">
+              <label class="form-label">Rx type
+                <select v-model="edit.rx_type" class="form-select">
+                  <option>OTC</option><option>RX</option><option>CONTROLLED</option>
+                </select>
+              </label>
+            </div>
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Replace photo
+              <input @change="pickFile" type="file" accept="image/*" class="form-control">
+            </label>
+            <img :src="imgPreview" v-if="imgPreview" class="img-fluid mt-2" style="max-width:120px">
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+          <button @click="save" @submit.prevent="save" class="btn btn-primary">Save</button>
+
+        </div>
+      </form>
     </div>
-
-    <form @submit.prevent="save">
-      <div class="modal-body">
-        <div class="mb-3">
-          <label class="form-label">Name
-            <input v-model="edit.product_name" class="form-control" required>
-          </label>
-        </div>
-
-        <div class="row g-2">
-          <div class="col">
-            <label class="form-label">Price
-              <input v-model.number="edit.unit_price" type="number" min="0"
-                     class="form-control" required>
-            </label>
-          </div>
-          <div class="col">
-            <label class="form-label">Rx type
-              <select v-model="edit.rx_type" class="form-select">
-                <option>OTC</option><option>RX</option><option>CONTROLLED</option>
-              </select>
-            </label>
-          </div>
-        </div>
-
-        <div class="mb-3">
-          <label class="form-label">Replace photo
-            <input @change="pickFile" type="file" accept="image/*" class="form-control">
-          </label>
-          <img :src="imgPreview" v-if="imgPreview" class="img-fluid mt-2" style="max-width:120px">
-        </div>
-      </div>
-
-      <div class="modal-footer">
-        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button class="btn btn-primary" type="submit">Save</button>
-      </div>
-    </form>
   </div>
 </div>
+
+
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
@@ -196,17 +199,25 @@ createApp({
     }
 
     async function save(){
+      
+
       const fd = new FormData();
       Object.entries(edit).forEach(([k,v]) => fd.append(k, v));
       if (newPhoto) fd.append('photo', newPhoto);
-      
-      const res = await fetch('api/modules/product/product_save.php', {method:'POST', body:fd});
+
+      const res = await fetch('api/modules/product/product_save.php', {
+        method: 'POST',
+        body: fd
+      });
       const json = await res.json();
+      console.log('Server response:', json);
+
       if (json.ok){
         bsModal.hide();
-        load();                      // refresh table
+        load();
       } else alert(json.error || 'Save failed');
     }
+
 
     async function softDelete(p){
       if (!confirm(`Delete ${p.product_name}?`)) return;

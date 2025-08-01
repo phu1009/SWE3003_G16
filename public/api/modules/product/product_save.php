@@ -25,7 +25,7 @@ try {
         $ext = pathinfo($_FILES['photo']['name'], PATHINFO_EXTENSION);
         $file = uniqid().'_'.time().'.'.$ext;
         move_uploaded_file($_FILES['photo']['tmp_name'],
-            __DIR__.'/../../uploads/products/'.$file);
+            __DIR__.'/../../../products/'.$file);
         $extraSql = ', image_path = :img';
     }
 
