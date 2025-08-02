@@ -74,7 +74,9 @@
         <td>{{ p.rx_type }}</td>
         <td>{{ p.patient_groups }}</td>
         <td class="text-end">{{ money(p.unit_price) }}</td>
-        <td class="text-end" v-if="canEdit()">  
+        <td class="text-end" v-if="canEdit()"> 
+        <button class="btn btn-sm btn-success" 
+                @click="buyOnline(p)">Buy online</button>
         <button class="btn btn-sm btn-outline-primary me-1"
                 @click="openEdit(p)">Edit</button>
         <button class="btn btn-sm btn-outline-danger"
@@ -180,10 +182,11 @@ createApp({
       return p.toString();                 // '' if no filters selected
     });
 
-    const imgUrl = p =>
-      p.image_path
-        ? `/images/products/${p.image_path}`   // adjust to your path
-        : 'https://via.placeholder.com/60x60?text=No+Img';
+    const imgUrl = p => {
+      if (!p.image_path) return 'images/no-product.png';
+      const cleaned = p.image_path.replace(/^\/?images\/products\//, '');
+      return `images/products/${cleaned}`;
+    };
 
     const money = n =>
       (+n).toLocaleString('en-US', { minimumFractionDigits:2 });
@@ -223,25 +226,52 @@ createApp({
     bsModal.show();
   }
 
-    /* ----- open modal: brand-new product ----- */
-    function openNew(){
-      // wipe previous values (without losing reactivity)
-      Object.keys(edit).forEach(k => delete edit[k]);
-      Object.assign(edit, {
-        product_name : '',
-        sku          : '',
-        unit_price   : 0,
-        rx_type      : 'OTC'
-      });
-      imgPreview.value = '';
-      newPhoto = null;
-      bsModal.show();
-    }
-
     /* ----- file picker ----- */
     function pickFile(e){
       newPhoto = e.target.files[0] || null;
       imgPreview.value = newPhoto ? URL.createObjectURL(newPhoto) : imgUrl(edit);
+    }
+
+    async function buyOnline (prod) {
+      const qty = 1;                 // hard-coded for now
+
+      /* create order ---------------------------------------------------- */
+      const fd = new FormData();
+      fd.append('product_id', prod.product_id);
+      fd.append('qty', qty);
+
+      const r  = await fetch('api/modules/order/order_create.php',
+                            {method:'POST', body:fd});
+      const j  = await r.json();
+      if (!j.ok){ alert(j.error || 'Order failed'); return; }
+
+      /* prescription gate ---------------------------------------------- */
+      if (j.rx_required) {
+        const file = await pickRxFile();
+        if (!file) return;           // user cancelled
+
+        const up = new FormData();
+        up.append('order_id', j.order_id);
+        up.append('rx', file);
+
+        const r2 = await fetch('api/modules/order/order_prescription_upload.php',
+                              {method:'POST', body:up});
+        const j2 = await r2.json();
+        if (j2.ok) alert('Prescription uploaded – awaiting approval');
+        else       alert(j2.error || 'Upload failed');
+      } else {
+        alert('Order placed successfully!');
+      }
+    }
+
+    function pickRxFile () {
+      return new Promise(resolve => {
+        const input = document.createElement('input');
+        input.type   = 'file';
+        input.accept = 'image/*,application/pdf';
+        input.onchange = () => resolve(input.files[0] || null);
+        input.click();
+      });
     }
 
     /* -------- save (add OR update) -------- */
@@ -291,9 +321,12 @@ createApp({
     });
 
     /* ---------- expose to template ---------- */
-    return { ...toRefs(data), filters, imgUrl, money,
-             openEdit, openNew, pickFile, save, softDelete,
-             edit, imgPreview, canEdit, canAdd };
+    return {
+      buyOnline, pickRxFile,
+      ...toRefs(data), filters, imgUrl, money,
+      openEdit, openNew, pickFile, save, softDelete,
+      edit, imgPreview, canEdit, canAdd
+    };
   }
 }).mount('#app');
 </script>

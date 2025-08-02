@@ -239,3 +239,47 @@ CREATE TABLE IF NOT EXISTS user_addresses (
 /* 1-c.  Quick one-liner if you just want an avatar and nothing else
          (put it right after full_name)                               */
 ALTER TABLE users ADD COLUMN avatar_path VARCHAR(255) AFTER full_name;
+
+/* 1-a. main profile gets an address_name */
+ALTER TABLE user_profiles
+  ADD COLUMN address_name VARCHAR(50) AFTER avatar_path;
+
+/* 1-b. extra addresses table – change label → address_name if you want */
+ALTER TABLE user_addresses
+  CHANGE COLUMN label address_name VARCHAR(50) NOT NULL,
+  ADD INDEX idx_user_id (user_id);
+
+/* 1-c. OPTIONAL: guarantee max-4 extra addresses per user with a trigger */
+DELIMITER $$
+CREATE TRIGGER trg_limit_addresses
+BEFORE INSERT ON user_addresses
+FOR EACH ROW
+BEGIN
+  DECLARE cnt INT;
+  SELECT COUNT(*) INTO cnt FROM user_addresses WHERE user_id = NEW.user_id;
+  IF cnt >= 4 THEN
+    SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'Address limit reached';
+  END IF;
+END$$
+DELIMITER ;
+
+/* 1-a. Orders master --------------------------------------------------*/
+CREATE TABLE IF NOT EXISTS orders (
+  order_id     INT AUTO_INCREMENT PRIMARY KEY,
+  user_id      INT NOT NULL,
+  created_at   DATETIME DEFAULT CURRENT_TIMESTAMP,
+  status       ENUM('pending','approved','denied') DEFAULT 'pending',
+  rx_required  TINYINT(1) DEFAULT 0,          -- 1 = waiting for prescription
+  prescription_file VARCHAR(255),             -- null until upload
+  FOREIGN KEY (user_id) REFERENCES users(user_id)
+);
+
+/* 1-b. One product per order (simple) --------------------------------*/
+CREATE TABLE IF NOT EXISTS order_items (
+  order_item_id INT AUTO_INCREMENT PRIMARY KEY,
+  order_id      INT NOT NULL,
+  product_id    INT NOT NULL,
+  qty           INT DEFAULT 1,
+  FOREIGN KEY (order_id)  REFERENCES orders(order_id)  ON DELETE CASCADE,
+  FOREIGN KEY (product_id)REFERENCES products(product_id)
+);
