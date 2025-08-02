@@ -198,3 +198,44 @@ ALTER TABLE products
 
 UPDATE products SET is_active = 1;   -- ensure old rows are marked active
 
+/* 1-a.  Keep one “avatar + default contact” row per user  */
+CREATE TABLE IF NOT EXISTS user_profiles (
+  user_id        INT PRIMARY KEY,                         -- 1 : 1 with users
+  avatar_path    VARCHAR(255),                            -- /images/avatars/xxxx.jpg
+  phone          VARCHAR(20),
+  address_line1  VARCHAR(150),
+  address_line2  VARCHAR(150),
+  city           VARCHAR(100),
+  state_region   VARCHAR(100),
+  postal_code    VARCHAR(20),
+  country        VARCHAR(100) DEFAULT 'Vietnam',
+  latitude       DECIMAL(10,8),                           -- for “nearest store”
+  longitude      DECIMAL(11,8),
+  updated_at     DATETIME ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(user_id)
+);
+
+/* 1-b.  Allow **multiple** addresses per user (shipping, work, etc.)        */
+CREATE TABLE IF NOT EXISTS user_addresses (
+  address_id     INT AUTO_INCREMENT PRIMARY KEY,
+  user_id        INT NOT NULL,
+  label          VARCHAR(50)  DEFAULT 'primary',          -- Home, Work …
+  address_line1  VARCHAR(150) NOT NULL,
+  address_line2  VARCHAR(150),
+  city           VARCHAR(100),
+  state_region   VARCHAR(100),
+  postal_code    VARCHAR(20),
+  country        VARCHAR(100) DEFAULT 'Vietnam',
+  latitude       DECIMAL(10,8),
+  longitude      DECIMAL(11,8),
+  is_default     TINYINT(1) DEFAULT 0,
+  created_at     DATETIME DEFAULT CURRENT_TIMESTAMP,
+  updated_at     DATETIME ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE,
+  INDEX idx_user  (user_id),
+  INDEX idx_geo   (latitude , longitude)
+);
+
+/* 1-c.  Quick one-liner if you just want an avatar and nothing else
+         (put it right after full_name)                               */
+ALTER TABLE users ADD COLUMN avatar_path VARCHAR(255) AFTER full_name;
