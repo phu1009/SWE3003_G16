@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>My profile</title>
+
+  <!-- Bootstrap & Vue -->
+  <link  href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://unpkg.com/vue@3.4.21/dist/vue.global.prod.js"></script>
+
+  <!-- (optional) Google Maps JS API – uncomment & insert your key if you
+       want Places Autocomplete on the address_line1 input
+  <script src="https://maps.googleapis.com/maps/api/js?key=YOUR_KEY&libraries=places"></script>
+  -->
+</head>
+<body class="p-4">
+
+<div id="app" class="container">
+  <h2 class="mb-4">My profile</h2>
+
+  <!-- avatar + basics -->
+  <div class="d-flex align-items-center mb-4">
+    <img :src="avatarPreview"
+         class="rounded-circle me-3 border"
+         style="width:96px;height:96px;object-fit:cover">
+    <div>
+      <input @change="pickAvatar"
+             type="file"
+             accept="image/*"
+             class="form-control-sm">
+      <small class="text-muted">JPG/PNG ≤ 5 MB</small>
+    </div>
+  </div>
+
+  <form @submit.prevent="save">
+    <div class="row g-3">
+      <div class="col-md-6">
+        <label class="form-label">Email
+          <input v-model="form.email"
+                 type="email"
+                 class="form-control"
+                 required>
+        </label>
+      </div>
+
+      <div class="col-md-6">
+        <label class="form-label">Phone
+          <input v-model="form.phone"
+                 class="form-control">
+        </label>
+      </div>
+    </div>
+
+    <!-- MAIN ADDRESS -->
+    <h5 class="mt-4">Primary address</h5>
+    <div class="row g-2">
+      <div class="col-md-8">
+        <input v-model="form.address_line1"
+               class="form-control"
+               placeholder="Street & number"
+               required
+               id="mainLine1">
+      </div>
+      <div class="col-md-4">
+        <input v-model="form.address_line2"
+               class="form-control"
+               placeholder="Apartment / ward">
+      </div>
+      <div class="col-md-4">
+        <input v-model="form.city"
+               class="form-control"
+               placeholder="City">
+      </div>
+      <div class="col-md-4">
+        <input v-model="form.state"
+               class="form-control"
+               placeholder="State / region">
+      </div>
+      <div class="col-md-4">
+        <input v-model="form.postal_code"
+               class="form-control"
+               placeholder="Postal code">
+      </div>
+    </div>
+
+    <button type="button"
+            class="btn btn-outline-secondary mt-3"
+            @click="locate">
+      Use current GPS position
+    </button>
+
+    <div class="mt-4">
+      <button class="btn btn-primary">Save changes</button>
+    </div>
+  </form>
+
+  <!-- EXTRA ADDRESSES -->
+  <h4 class="mt-5 d-flex justify-content-between align-items-center">
+    Additional addresses
+    <button class="btn btn-sm btn-outline-primary" @click="openAddrModal">
+      + Add address
+    </button>
+  </h4>
+
+  <table class="table table-hover align-middle mt-2" v-if="addresses.length">
+    <thead class="table-light">
+      <tr>
+        <th>Label</th><th>Address</th><th class="text-end" style="width:80px"></th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr v-for="a in addresses" :key="a.address_id">
+        <td>{{ a.label }}</td>
+        <td>
+          {{ a.address_line1 }},
+          {{ a.address_line2 ? a.address_line2 + ',' : '' }}
+          {{ a.city }}, {{ a.state_region }} {{ a.postal_code }}
+        </td>
+        <td class="text-end">
+          <button class="btn btn-sm btn-outline-danger"
+                  @click="deleteAddr(a)">Del</button>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+  <p v-else class="text-muted">No additional addresses saved.</p>
+</div>
+
+<!-- ADD-ADDRESS MODAL -->
+<div class="modal fade" id="addrModal" tabindex="-1">
+  <div class="modal-dialog"><div class="modal-content">
+    <div class="modal-header">
+      <h5 class="modal-title">Add address</h5>
+      <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+    </div>
+    <form @submit.prevent="saveAddr">
+      <div class="modal-body">
+        <label class="form-label">Label
+          <input v-model="addr.label" class="form-control" placeholder="Home / Office">
+        </label>
+
+        <label class="form-label mt-2">Address line 1
+          <input v-model="addr.address_line1" class="form-control" required id="addrLine1">
+        </label>
+        <label class="form-label mt-2">Address line 2
+          <input v-model="addr.address_line2" class="form-control">
+        </label>
+
+        <div class="row g-2 mt-2">
+          <div class="col-md-6">
+            <input v-model="addr.city" class="form-control" placeholder="City">
+          </div>
+          <div class="col-md-6">
+            <input v-model="addr.state" class="form-control" placeholder="State / region">
+          </div>
+        </div>
+
+        <div class="row g-2 mt-2">
+          <div class="col-md-6">
+            <input v-model="addr.postal_code" class="form-control" placeholder="Postal code">
+          </div>
+          <div class="col-md-6">
+            <select v-model="addr.country" class="form-select">
+              <option>Vietnam</option>
+              <option>USA</option>
+              <option>Singapore</option>
+              <!-- add more as needed -->
+            </select>
+          </div>
+        </div>
+
+        <div class="form-check mt-3">
+          <input class="form-check-input" type="checkbox" v-model="addr.is_default" id="chkDefault">
+          <label class="form-check-label" for="chkDefault">Set as default</label>
+        </div>
+
+        <button type="button"
+                class="btn btn-outline-secondary mt-3"
+                @click="gpsAddr">
+          Use current GPS
+        </button>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+        <button class="btn btn-primary">Save address</button>
+      </div>
+    </form>
+  </div></div>
+</div>
+
+<!-- keep everything above unchanged … -->
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+const { createApp, reactive, ref, onMounted } = Vue;
+
+createApp({
+  setup(){
+    /* ---------- reactive state ---------- */
+    const form          = reactive({});
+    const addresses     = ref([]);
+
+    /* local placeholder instead of via.placeholder.com ------------------- */
+    const PLACEHOLDER   = 'images/avatars/default.png';
+
+    const avatarPreview = ref(PLACEHOLDER);
+    let   newAvatar     = null;
+
+    /* address modal */
+    const addr  = reactive({});
+    let   bsAddrModal;
+
+    /* ---------- helpers ---------- */
+    function pickAvatar(e){
+      newAvatar = e.target.files[0] || null;
+      if (newAvatar) avatarPreview.value = URL.createObjectURL(newAvatar);
+    }
+
+    function locate(){
+      if (!navigator.geolocation) return alert('Geolocation unsupported.');
+      navigator.geolocation.getCurrentPosition(pos=>{
+        form.latitude  = pos.coords.latitude;
+        form.longitude = pos.coords.longitude;
+        alert('GPS coordinates attached!');
+      }, err=>{ alert(err.message); });
+    }
+
+    function gpsAddr(){
+      if (!navigator.geolocation) return alert('Geolocation unsupported.');
+      navigator.geolocation.getCurrentPosition(pos=>{
+        addr.latitude  = pos.coords.latitude;
+        addr.longitude = pos.coords.longitude;
+        alert('GPS coordinates attached to address!');
+      }, err=>{ alert(err.message); });
+    }
+
+    /* ---------- API calls ---------- */
+    async function load(){
+      const res  = await fetch('api/modules/user/profile_get.php');
+      const data = await res.json();
+
+      Object.assign(form, data);
+      addresses.value = data.addresses || [];
+
+      if (data.avatar_path){
+        /* avatar_path already relative (images/avatars/…) */
+        avatarPreview.value = data.avatar_path.replace(/^\/+/, '');
+      } else {
+        avatarPreview.value = PLACEHOLDER;
+      }
+    }
+
+    async function save(){
+      const fd = new FormData();
+      Object.entries(form).forEach(([k,v]) => fd.append(k, v ?? ''));
+      if (newAvatar) fd.append('avatar', newAvatar);
+
+      const res  = await fetch('api/modules/user/profile_save.php', {
+                      method:'POST', body:fd });
+      const json = await res.json();
+      if (json.ok) alert('Profile saved!');
+      else         alert(json.error || 'Save failed');
+    }
+
+    /* ----- additional addresses ----- */
+    function openAddrModal(){
+      Object.keys(addr).forEach(k=>delete addr[k]);
+      Object.assign(addr,{label:'',country:'Vietnam',is_default:0});
+      bsAddrModal.show();
+    }
+
+    async function saveAddr(){
+      const fd = new FormData();
+      Object.entries(addr).forEach(([k,v]) => fd.append(k,v));
+      const res  = await fetch('api/modules/user/address_add.php',
+                               {method:'POST', body:fd});
+      const json = await res.json();
+      if (json.ok){ bsAddrModal.hide(); load(); }
+      else alert(json.error || 'Save failed');
+    }
+
+    async function deleteAddr(a){
+      if (!confirm('Delete this address?')) return;
+      const fd = new FormData();
+      fd.append('address_id', a.address_id);
+      const res  = await fetch('api/modules/user/address_delete.php',
+                               {method:'POST', body:fd});
+      const json = await res.json();
+      if (json.ok) load();
+      else alert(json.error || 'Delete failed');
+    }
+
+    /* ---------- mount ---------- */
+    onMounted(()=>{
+      load();
+      bsAddrModal = new bootstrap.Modal('#addrModal');
+    });
+
+    /* ---------- expose ---------- */
+    return {form, avatarPreview, pickAvatar, locate,
+            addresses, openAddrModal, addr, saveAddr, deleteAddr,
+            gpsAddr, save};
+  }
+}).mount('#app');
+</script>
+</body>
+</html>
