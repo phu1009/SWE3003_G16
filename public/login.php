@@ -30,31 +30,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 ?>
 <!doctype html>
-<html>
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <title>Login</title>
-  <link rel="stylesheet" href="<?= $cfg['base_url'] ?>/css/login.css">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body>
-  <div class="login-container">
-    <h2>Login</h2>
+  <?php include __DIR__ . '/navbar.php'; ?>
 
-    <?php if ($error): ?>
-      <p class="error"><?= htmlspecialchars($error) ?></p>
-    <?php endif; ?>
+  <div class="container d-flex justify-content-center align-items-center" style="min-height: 80vh;">
+    <div class="card shadow p-4" style="width: 360px;">
+      <h2 class="text-center mb-4">Login</h2>
 
-    <form method="post">
-      <label>Email</label>
-      <input name="email" type="email" required>
+      <?php if ($error): ?>
+        <div class="alert alert-danger"><?= htmlspecialchars($error) ?></div>
+      <?php endif; ?>
 
-      <label>Password</label>
-      <input name="password" type="password" required>
+      <form method="post">
+        <div class="mb-3">
+          <label class="form-label">Email</label>
+          <input name="email" type="email" class="form-control" required>
+        </div>
 
-      <button type="submit">Sign in</button>
-    </form>
+        <div class="mb-3">
+          <label class="form-label">Password</label>
+          <input name="password" type="password" class="form-control" required>
+        </div>
 
-    <p><a href="<?= $cfg['base_url'] ?>/register.php">Create an account</a></p>
+        <button type="submit" class="btn btn-primary w-100">Sign in</button>
+      </form>
+
+      <p class="mt-3 text-center">
+        <a href="<?= $cfg['base_url'] ?>/register.php">Create an account</a>
+      </p>
+    </div>
   </div>
 </body>
 </html>

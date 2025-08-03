@@ -8,7 +8,8 @@
   <!-- Vue 3 CDN -->
   <script src="https://unpkg.com/vue@3.4.21/dist/vue.global.prod.js"></script>
 </head>
-<body class="p-4">
+<body>
+<?php include __DIR__ . '/navbar.php'; ?>
 
 <div id="app" class="container">
 

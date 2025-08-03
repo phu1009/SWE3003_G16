@@ -1,11 +1,19 @@
 body {
   font-family: Arial, sans-serif;
   background: #f4f6f9;
+  margin: 0;
+  display: flex;
+  flex-direction: column; /* stack navbar and content vertically */
+  min-height: 100vh;
+}
+
+/* A wrapper for the page content (excluding navbar) */
+.main-content {
+  flex: 1; /* take remaining space */
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh;
-  margin: 0;
+  padding: 20px;
 }
 
 .login-container {

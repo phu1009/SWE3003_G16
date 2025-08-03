@@ -8,7 +8,8 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <script src="https://unpkg.com/vue@3.4.21/dist/vue.global.prod.js"></script>
 </head>
-<body class="p-4">
+<body>
+<?php include __DIR__ . '/navbar.php'; ?>
 
 <div id="app" class="container">
   <h2 class="mb-4">My profile</h2>
