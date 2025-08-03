@@ -14,7 +14,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $pass  = $_POST['password'] ?? '';
 
     $user = UserModel::findByEmail($email);
-    if ($user && hash_equals($user['password_hash'], $pass)) {
+    if ($user && password_verify($pass, $user['password_hash'])) {
+
         session_regenerate_id(true);
         $_SESSION['user'] = [
             'id'    => $user['user_id'],
